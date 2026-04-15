@@ -2,44 +2,366 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Outil RA pour étudiants</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RAptor - Plateforme de Réalité Augmentée Éducative</title>
+  <!-- Bibliothèques -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/web@latest/dist/8thwall.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/browser.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    #app {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .section {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+    }
+    .section h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    #ar-container {
+      width: 100%;
+      height: 500px;
+      background: #eee;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #share-section {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      padding: 20px;
+      background: #f0f8ff;
+      border-radius: 8px;
+    }
+    #qrcode {
+      margin: 20px auto;
+      width: 200px;
+    }
+    .instructions {
+      background: #e6f7ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #0066cc;
+    }
+    @media (max-width: 768px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="app">
-    <h1>Outil de Réalité Augmentée</h1>
-    <div class="controls">
-      <div class="section">
-        <h3>Modèle 3D</h3>
-        <input type="file" @change="handleModelUpload" accept=".gltf,.glb,.obj" />
-        <p>OU</p>
-        <input type="text" v-model="sketchfabUrl" placeholder="Lien Sketchfab (ex: https://sketchfab.com/models/...)">
-        <button @click="loadSketchfabModel">Charger depuis Sketchfab</button>
-      </div>
-      <div class="section">
-        <h3>Marqueur personnalisé</h3>
-        <input type="file" @change="handleMarkerUpload" accept="image/*">
-        <p>OU utiliser le <a href="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" target="_blank">marqueur Hiro</a> par défaut.</p>
-      </div>
-      <button @click="startAR">Lancer la RA</button>
-      <button @click="exportProject">Exporter le projet</button>
+    <h1>🦖 RAptor - Créateur de Réalité Augmentée Éducative</h1>
+
+    <div class="instructions">
+      <h3>Comment utiliser RAptor ?</h3>
+      <ol>
+        <li>Sélectionnez un type de média (3D, image, vidéo, son).</li>
+        <li>Chargez un fichier local ou entrez une URL.</li>
+        <li>Choisissez un marqueur (ou utilisez le marqueur Hiro par défaut).</li>
+        <li>Cliquez sur "Lancer la RA" pour prévisualiser.</li>
+        <li>Exportez votre projet pour obtenir un QR Code à scanner.</li>
+      </ol>
+      <p>📱 <strong>Sur téléphone</strong> : Scannez le QR Code et pointez la caméra vers ce marqueur :</p>
+      <img src="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" width="150" style="display: block; margin: 10px auto;">
     </div>
-    <div class="ar-viewer">
-      <a-scene embedded :arjs="arjsConfig">
-        <a-marker v-if="!customMarker" preset="hiro">
-          <a-entity v-if="modelUrl" :gltf-model="modelUrl" scale="0.5 0.5 0.5"></a-entity>
-        </a-marker>
-        <a-marker v-if="customMarker" :preset="customMarkerPreset" type="pattern" :url="customMarkerUrl">
-          <a-entity v-if="modelUrl" :gltf-model="modelUrl" scale="0.5 0.5 0.5"></a-entity>
-        </a-marker>
-        <a-entity camera></a-entity>
-      </a-scene>
+
+    <div class="controls">
+      <!-- Section média -->
+      <div class="section">
+        <h3>1. Médias à augmenter</h3>
+        <select id="media-type" v-model="mediaType">
+          <option value="3d">Objet 3D (glTF/OBJ)</option>
+          <option value="image">Image 2D (PNG/JPG)</option>
+          <option value="video">Vidéo (MP4/WebM)</option>
+          <option value="audio">Son (MP3/WAV)</option>
+        </select>
+
+        <input type="file" id="media-upload" @change="handleMediaUpload" :accept="fileAccept">
+        <p>OU</p>
+        <input type="text" id="media-url" v-model="mediaUrl" placeholder="URL du média (ex: https://...)">
+      </div>
+
+      <!-- Section marqueur -->
+      <div class="section">
+        <h3>2. Marqueur</h3>
+        <input type="file" id="marker-upload" @change="handleMarkerUpload" accept="image/*">
+        <p>OU utilisez le <a href="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" target="_blank">marqueur Hiro</a> par défaut.</p>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <button id="start-ar" @click="startAR">Lancer la RA</button>
+      <button id="export-project" @click="exportProject">Exporter le projet</button>
+    </div>
+
+    <div id="ar-container"></div>
+
+    <!-- Section de partage -->
+    <div id="share-section">
+      <h3>🎉 Votre projet est prêt !</h3>
+      <p>Scannez ce QR Code avec votre téléphone pour voir le projet en RA :</p>
+      <div id="qrcode"></div>
+      <p>Ou ouvrez ce lien : <a id="share-url" target="_blank" style="word-break: break-all; color: #0066cc;"></a></p>
+      <button id="copy-url" @click="copyUrl">Copier le lien</button>
     </div>
   </div>
-  <script src="app.js"></script>
+
+  <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+      setup() {
+        // Variables réactives
+        const mediaType = ref('3d');
+        const mediaUrl = ref('');
+        const mediaFile = ref(null);
+        const markerFile = ref(null);
+        const xrSystem = ref(null);
+        const scene = ref(null);
+        const projectUrl = ref('');
+
+        // Mise à jour de l'attribut "accept" pour l'upload de médias
+        const fileAccept = ref('.gltf,.glb,.obj');
+        const updateFileAccept = () => {
+          switch (mediaType.value) {
+            case '3d': fileAccept.value = '.gltf,.glb,.obj'; break;
+            case 'image': fileAccept.value = '.png,.jpg,.jpeg'; break;
+            case 'video': fileAccept.value = '.mp4,.webm'; break;
+            case 'audio': fileAccept.value = '.mp3,.wav'; break;
+          }
+        };
+        updateFileAccept();
+
+        // Chargement d'un média depuis un fichier local
+        const handleMediaUpload = (event) => {
+          mediaFile.value = event.target.files[0];
+          if (mediaFile.value) {
+            mediaUrl.value = URL.createObjectURL(mediaFile.value);
+          }
+        };
+
+        // Chargement d'un marqueur personnalisé
+        const handleMarkerUpload = (event) => {
+          markerFile.value = event.target.files[0];
+        };
+
+        // Lancement de la RA
+        const startAR = () => {
+          if (!mediaUrl.value && !mediaFile.value) {
+            alert("Veuillez charger un média avant de lancer la RA.");
+            return;
+          }
+
+          // Initialisation de 8th Wall
+          xrSystem.value = new XR8.XrSystem({
+            cameraConfig: { facingMode: 'environment' }
+          });
+
+          // Création de la scène A-Frame
+          scene.value = document.createElement('a-scene');
+          scene.value.setAttribute('embedded', '');
+
+          // Génération du contenu en fonction du type de média
+          let mediaEntity = '';
+          if (mediaType.value === '3d') {
+            mediaEntity = `<a-entity gltf-model="url(${mediaUrl.value})" scale="0.5 0.5 0.5"></a-entity>`;
+          } else if (mediaType.value === 'image') {
+            mediaEntity = `<a-plane src="${mediaUrl.value}" width="1" height="0.75" position="0 0 0"></a-plane>`;
+          } else if (mediaType.value === 'video') {
+            mediaEntity = `
+              <a-video src="${mediaUrl.value}" width="1.78" height="1" position="0 0 0" autoplay></a-video>
+              <a-plane color="#000" width="1.78" height="1" position="0 0 -0.01" side="back"></a-plane>
+            `;
+          } else if (mediaType.value === 'audio') {
+            mediaEntity = `
+              <a-entity sound="src: url(${mediaUrl.value}); autoplay: true; loop: true"></a-entity>
+              <a-text value="Écoutez le son !" color="black" position="0 0.5 0" scale="0.5 0.5 0.5"></a-text>
+            `;
+          }
+
+          // Ajout du marqueur et du média à la scène
+          if (markerFile.value) {
+            const markerUrl = URL.createObjectURL(markerFile.value);
+            scene.value.innerHTML = `
+              <a-marker type="pattern" url="${markerUrl}">
+                ${mediaEntity}
+              </a-marker>
+              <a-entity camera></a-entity>
+            `;
+          } else {
+            scene.value.innerHTML = `
+              <a-marker preset="hiro">
+                ${mediaEntity}
+              </a-marker>
+              <a-entity camera></a-entity>
+            `;
+          }
+
+          // Nettoyage de la scène précédente et ajout de la nouvelle
+          document.getElementById('ar-container').innerHTML = '';
+          document.getElementById('ar-container').appendChild(scene.value);
+
+          // Démarrage de la RA
+          xrSystem.value.init({
+            onStart: () => {
+              console.log("RA démarrée !");
+            }
+          });
+        };
+
+        // Export du projet
+        const exportProject = () => {
+          if (!mediaUrl.value && !mediaFile.value) {
+            alert("Veuillez charger un média avant d'exporter.");
+            return;
+          }
+
+          // Génération du code HTML du projet
+          let mediaEntity = '';
+          if (mediaType.value === '3d') {
+            mediaEntity = `<a-entity gltf-model="url(${mediaUrl.value})" scale="0.5 0.5 0.5"></a-entity>`;
+          } else if (mediaType.value === 'image') {
+            mediaEntity = `<a-plane src="${mediaUrl.value}" width="1" height="0.75" position="0 0 0"></a-plane>`;
+          } else if (mediaType.value === 'video') {
+            mediaEntity = `
+              <a-video src="${mediaUrl.value}" width="1.78" height="1" position="0 0 0" autoplay></a-video>
+              <a-plane color="#000" width="1.78" height="1" position="0 0 -0.01" side="back"></a-plane>
+            `;
+          } else if (mediaType.value === 'audio') {
+            mediaEntity = `
+              <a-entity sound="src: url(${mediaUrl.value}); autoplay: true; loop: true"></a-entity>
+              <a-text value="Écoutez le son !" color="black" position="0 0.5 0" scale="0.5 0.5 0.5"></a-text>
+            `;
+          }
+
+          // Génération du marqueur
+          let markerCode = '';
+          if (markerFile.value) {
+            const markerUrl = URL.createObjectURL(markerFile.value);
+            markerCode = `<a-marker type="pattern" url="${markerUrl}">${mediaEntity}</a-marker>`;
+          } else {
+            markerCode = `<a-marker preset="hiro">${mediaEntity}</a-marker>`;
+          }
+
+          // Code HTML complet du projet
+          const projectCode = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@8thwall/web@latest/dist/8thwall.js"></script>
+                <style>
+                  body { margin: 0; overflow: hidden; }
+                </style>
+              </head>
+              <body>
+                <a-scene embedded arjs="trackingMethod: best;">
+                  ${markerCode}
+                  <a-entity camera></a-entity>
+                </a-scene>
+                <script>
+                  const xrSystem = new XR8.XrSystem({ cameraConfig: { facingMode: 'environment' } });
+                  xrSystem.init();
+                </script>
+              </body>
+            </html>
+          `;
+
+          // Création du lien de partage
+          const blob = new Blob([projectCode], { type: 'text/html' });
+          projectUrl.value = URL.createObjectURL(blob);
+
+          // Affichage du lien et du QR Code
+          document.getElementById('share-url').textContent = projectUrl.value;
+          document.getElementById('share-url').href = projectUrl.value;
+          document.getElementById('share-section').style.display = 'block';
+
+          // Génération du QR Code
+          const qrCode = new QRCodeStyling({
+            width: 200,
+            height: 200,
+            data: projectUrl.value,
+            margin: 10,
+            qrOptions: { typeNumber: 0, errorCorrectionLevel: 'H' },
+            imageOptions: { hideBackgroundDots: true, imageSize: 0.4 },
+          });
+          document.getElementById('qrcode').innerHTML = '';
+          qrCode.append(document.getElementById('qrcode'));
+        };
+
+        // Copie du lien de partage
+        const copyUrl = () => {
+          navigator.clipboard.writeText(projectUrl.value)
+            .then(() => alert("Lien copié dans le presse-papiers !"))
+            .catch(() => alert("Échec de la copie du lien."));
+        };
+
+        return {
+          mediaType,
+          mediaUrl,
+          fileAccept,
+          handleMediaUpload,
+          handleMarkerUpload,
+          startAR,
+          exportProject,
+          copyUrl,
+        };
+      },
+    }).mount('#app');
+  </script>
 </body>
 </html>
