@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outil RA pour étudiants</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>Outil de Réalité Augmentée</h1>
+    <div class="controls">
+      <div class="section">
+        <h3>Modèle 3D</h3>
+        <input type="file" @change="handleModelUpload" accept=".gltf,.glb,.obj" />
+        <p>OU</p>
+        <input type="text" v-model="sketchfabUrl" placeholder="Lien Sketchfab (ex: https://sketchfab.com/models/...)">
+        <button @click="loadSketchfabModel">Charger depuis Sketchfab</button>
+      </div>
+      <div class="section">
+        <h3>Marqueur personnalisé</h3>
+        <input type="file" @change="handleMarkerUpload" accept="image/*">
+        <p>OU utiliser le <a href="https://jeromeetienne.github.io/AR.js/data/images/HIRO.jpg" target="_blank">marqueur Hiro</a> par défaut.</p>
+      </div>
+      <button @click="startAR">Lancer la RA</button>
+      <button @click="exportProject">Exporter le projet</button>
+    </div>
+    <div class="ar-viewer">
+      <a-scene embedded :arjs="arjsConfig">
+        <a-marker v-if="!customMarker" preset="hiro">
+          <a-entity v-if="modelUrl" :gltf-model="modelUrl" scale="0.5 0.5 0.5"></a-entity>
+        </a-marker>
+        <a-marker v-if="customMarker" :preset="customMarkerPreset" type="pattern" :url="customMarkerUrl">
+          <a-entity v-if="modelUrl" :gltf-model="modelUrl" scale="0.5 0.5 0.5"></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+      </a-scene>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
